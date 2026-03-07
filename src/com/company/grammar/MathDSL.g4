@@ -47,10 +47,7 @@ unit
     ;
 
 baseUnit
-    : UNIT_TIME
-    | UNIT_LENGTH
-    | UNIT_MASS
-    ;
+    : ID;
 
 // --- Expressions (precedence) ---
 expr
@@ -85,10 +82,7 @@ primary
 FUN   : 'fun';
 LET   : 'let';
 
-// Units (must come before ID)
-UNIT_TIME    : 'ms' | 's' | 'h';
-UNIT_LENGTH  : 'cm' | 'm' | 'km';
-UNIT_MASS    : 'g' | 'kg';
+
 
 // Tokens
 NUMBER : [0-9]+ ('.' [0-9]+)?;
