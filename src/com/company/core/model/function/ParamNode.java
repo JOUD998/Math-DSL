@@ -2,6 +2,7 @@ package com.company.core.model.function;
 
 import com.company.core.model.ASTNode;
 import com.company.core.model.unit.UnitNode;
+import com.company.core.semantic.ASTVisitor;
 
 public class ParamNode extends ASTNode {
 
@@ -19,5 +20,10 @@ public class ParamNode extends ASTNode {
     @Override
     public String toJson() {
         return "{ \"type\": \"Param\", \"name\": \"" + name + "\", \"unit\": " + (unit != null ? unit.toJson() : "null") + " }";
+    }
+
+    @Override
+    public <T> T accept(ASTVisitor<T> visitor) {
+        return visitor.visitParamNode(this);
     }
 }

@@ -1,5 +1,7 @@
 package com.company.core.model;
 
+import com.company.core.semantic.ASTVisitor;
+
 public class FactorialNode extends ASTNode {
 
     public ASTNode child;
@@ -8,5 +10,10 @@ public class FactorialNode extends ASTNode {
     @Override
     public String toJson() {
         return "{ \"type\": \"Factorial\", \"child\": " + child.toJson() +  " } Ich muss heir was andern ";
+    }
+
+    @Override
+    public <T> T accept(ASTVisitor<T> visitor) {
+        return visitor.visitFactorialNode(this);
     }
 }

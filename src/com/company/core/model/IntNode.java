@@ -1,5 +1,7 @@
 package com.company.core.model;
 
+import com.company.core.semantic.ASTVisitor;
+
 public class IntNode extends ASTNode {
     public int value;
 
@@ -9,5 +11,10 @@ public class IntNode extends ASTNode {
     @Override
     public String toJson() {
         return "{ \"type\": \"Int\", \"value\": " + value +  " } ";
+    }
+
+    @Override
+    public <T> T accept(ASTVisitor<T> visitor) {
+        return visitor.visitIntNode(this);
     }
 }

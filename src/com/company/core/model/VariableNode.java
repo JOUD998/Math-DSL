@@ -2,6 +2,7 @@ package com.company.core.model;
 
 import com.company.core.model.statment.StatementNode;
 import com.company.core.model.unit.UnitNode;
+import com.company.core.semantic.ASTVisitor;
 
 public class VariableNode extends StatementNode {
 
@@ -44,4 +45,9 @@ public class VariableNode extends StatementNode {
 
         return sb.toString();
     }
+    @Override
+    public <T> T accept(ASTVisitor<T> visitor) {
+        return visitor.visitVariableNode(this);
+    }
 }
+

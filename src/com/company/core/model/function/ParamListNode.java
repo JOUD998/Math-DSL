@@ -1,6 +1,7 @@
 package com.company.core.model.function;
 
 import com.company.core.model.ASTNode;
+import com.company.core.semantic.ASTVisitor;
 
 import java.util.List;
 
@@ -23,5 +24,10 @@ public class ParamListNode extends ASTNode {
 
         sb.append("] }");
         return sb.toString();
+    }
+
+    @Override
+    public <T> T accept(ASTVisitor<T> visitor) {
+        return visitor.visitParamListNode(this);
     }
 }

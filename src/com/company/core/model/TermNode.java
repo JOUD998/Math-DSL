@@ -1,5 +1,7 @@
 package com.company.core.model;
 
+import com.company.core.semantic.ASTVisitor;
+
 public class TermNode extends ASTNode{
 
     public ASTNode term;
@@ -19,5 +21,9 @@ public class TermNode extends ASTNode{
         return "{ \"type\": \"Term\", \"op\": \"" + op + "\", " +
                 "\"term\": " + (term != null ? term.toJson() : "null") + ", " +
                 "\"factor\": " + (factor != null ? factor.toJson() : "null") + " }";
+    }
+    @Override
+    public <T> T accept(ASTVisitor<T> visitor) {
+        return visitor.visitTermNode(this);
     }
 }

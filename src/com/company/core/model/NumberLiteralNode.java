@@ -1,11 +1,13 @@
 package com.company.core.model;
 
 import com.company.core.model.unit.UnitNode;
+import com.company.core.semantic.ASTVisitor;
 
 public class NumberLiteralNode extends ASTNode {
 
     public double value;
     public UnitNode unitNode;
+
     public NumberLiteralNode(double value, UnitNode unitNode){
         this.value = value;
         this.unitNode = unitNode;
@@ -27,5 +29,10 @@ public class NumberLiteralNode extends ASTNode {
                 "  \"value\": " + value + ",\n" +
                 "  \"UnitNode\": " + unitNode.toJson() + "\n" +
                 "}";
+    }
+
+    @Override
+    public <T> T accept(ASTVisitor<T> visitor) {
+        return visitor.visitNumberLiteralNode(this);
     }
 }

@@ -4,6 +4,7 @@ import com.company.core.model.ASTNode;
 import com.company.core.model.IdNode;
 import com.company.core.model.statment.StatementNode;
 import com.company.core.model.unit.UnitNode;
+import com.company.core.semantic.ASTVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,5 +68,8 @@ public class FunDeclNode extends StatementNode implements FunctionNode {
         return sb.toString();
     }
 
-
+    @Override
+    public <T> T accept(ASTVisitor<T> visitor) {
+        return visitor.visitFunDeclNode(this);
+    }
 }

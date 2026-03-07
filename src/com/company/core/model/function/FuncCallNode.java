@@ -2,6 +2,7 @@ package com.company.core.model.function;
 
 import com.company.core.model.ASTNode;
 import com.company.core.model.IdNode;
+import com.company.core.semantic.ASTVisitor;
 
 import java.util.List;
 
@@ -32,5 +33,10 @@ public class FuncCallNode extends ASTNode implements FunctionNode {
         }
         sb.append("] }");
         return sb.toString();
+    }
+
+    @Override
+    public <T> T accept(ASTVisitor<T> visitor) {
+        return visitor.visitFuncCallNode(this);
     }
 }

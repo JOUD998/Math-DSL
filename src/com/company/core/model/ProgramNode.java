@@ -1,6 +1,6 @@
 package com.company.core.model;
 
-import com.company.core.model.statment.StatementNode;
+import com.company.core.semantic.ASTVisitor;
 
 import java.util.List;
 
@@ -28,5 +28,9 @@ public class ProgramNode extends ASTNode{
         sb.append("] ");
         sb.append("}");
         return sb.toString();
+    }
+    @Override
+    public <T> T accept(ASTVisitor<T> visitor) {
+        return visitor.visitProgramNode(this);
     }
 }
