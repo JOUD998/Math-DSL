@@ -13,10 +13,10 @@ public class TestParser {
     public static void main(String[] args) throws Exception {
 
         // مثال: متغيرات عامة + دالة
-        String input = ""
-                + "let a = 3m "
-                + "let b = 5s "
-                + "fun distanceooo(v: m/s, t: s): m = v * t";
+
+//        String input = "fun testFun(x:m,y:m,z:m) = 2+1; testFun(10m,20m,30m);";
+
+        String input = "let a:m = 5; a(10m);";
 
         System.out.println("INPUT:");
         System.out.println(input);
@@ -41,6 +41,7 @@ public class TestParser {
         ASTNode ast = astBuilder.visitProg(tree);
 
         System.out.println("AST built.");
+//        System.out.println("AST in JSON format:" + ast.toJson());
         System.out.println("-------------");
 
         // 5️⃣ Semantic Analysis
@@ -48,7 +49,11 @@ public class TestParser {
         ast.accept(analyzer);
 
         System.out.println("-------------");
-        System.out.println("Symbol table after analysis:");
+        System.out.println("Symbol table after analysis:" );
+        analyzer.currentScope.printTree();
+        System.out.println(analyzer.currentScope.getSymbols().size());
+
+
 
 
     }

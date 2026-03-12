@@ -16,6 +16,7 @@ public class SymbolTable {
         symbols.put(symbol.getName(), symbol);
     }
 
+    //Lexical Scope Resolution
     public Symbol resolve(String name) {
 
         Symbol symbol = symbols.get(name);
@@ -38,9 +39,11 @@ public class SymbolTable {
     public Map<String, Symbol> getSymbols() {
         return symbols;
     }
+
     public boolean existsInCurrentScope(String name) {
         return symbols.containsKey(name);
     }
+
     public void printTree() {
         printTree("", true);
     }
@@ -52,21 +55,25 @@ public class SymbolTable {
             System.out.println(prefix + "└─ Scope:");
         }
 
-        String childPrefix = isRoot ? "" : prefix + "    ";
-
+        String childPrefix = prefix + "    ";
         for (Map.Entry<String, Symbol> entry : symbols.entrySet()) {
             Symbol sym = entry.getValue();
             if (sym instanceof VariableSymbol) {
                 VariableSymbol vs = (VariableSymbol) sym;
-
                 System.out.println(childPrefix + "├─ " + vs.getName() + " : " + vs.getDimension());
+            } else if (sym instanceof FunctionSymbol) {
+                FunctionSymbol fs = (FunctionSymbol) sym;
+                System.out.println(childPrefix + "├─ " + fs.getName() + " : Function");
+
+                // اطبع الـ scope الخاص بالدالة (parameters + أي متغيرات جواتها)
+                if (fs.getScope() != null) {
+                    fs.getScope().printTree(childPrefix, false);
+                }
             } else {
                 System.out.println(childPrefix + "├─ " + sym.getName() + " : " + sym.getClass().getSimpleName());
             }
         }
+    }
 
-        if (parent != null && isRoot) {
-            System.out.println("Parent Scopes:");
-            parent.printTree(prefix, false);
-        }
-    }}
+
+}

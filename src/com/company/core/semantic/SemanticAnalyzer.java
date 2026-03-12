@@ -1,4 +1,5 @@
 package com.company.core.semantic;
+
 import com.company.core.model.*;
 import com.company.core.model.function.*;
 import com.company.core.model.statment.StatementNode;
@@ -8,27 +9,68 @@ import com.company.core.semantic.unit.Dimension;
 import com.company.core.semantic.unit.UnitInfo;
 import com.company.core.semantic.unit.UnitRegistry;
 import com.company.core.symbol_table.FunctionSymbol;
+import com.company.core.symbol_table.Symbol;
 import com.company.core.symbol_table.SymbolTable;
 import com.company.core.symbol_table.VariableSymbol;
 
+import java.util.List;
+import java.util.Map;
+
 public class SemanticAnalyzer implements ASTVisitor<Void> {
 
-     public SymbolTable currentScope = new SymbolTable(null);
+    //my global symbol table, will be updated as we enter new scopes (like functions)
+    public SymbolTable currentScope = new SymbolTable(null);
 
-
+    // -------------------------
+    // prog → statement* EOF
+    // -------------------------
     @Override
     public Void visitProgramNode(ProgramNode node) {
-        currentScope = new SymbolTable(null); // GLOBAL SCOPE
-
+//        currentScope = new SymbolTable(null); // GLOBAL SCOPE
         for (ASTNode stmt : node.statements) {
             stmt.accept(this);
         }
         return null;
     }
 
+    // -------------------------
+    // Statements
+    // -------------------------
+
     @Override
-    public Void visitExprStmtNode(ExprStmtNode node) {
-        node.expr.accept(this);
+    public Void visitFunDeclNode(FunDeclNode node) {
+        SymbolTable previous = currentScope;
+
+        if (previous.existsInCurrentScope(node.funcId.name)) {
+            System.out.println("Semantic Error: function already declared: " + node.funcId.name);
+            return null;
+        }
+
+        // تعريف الدالة في الـ global scope
+        FunctionSymbol funcSymbol = new FunctionSymbol(node.funcId.name, node.params, node.dimension);
+        previous.define(funcSymbol);
+
+        // إنشاء scope خاص بالدالة
+        SymbolTable functionScope = new SymbolTable(previous);
+        funcSymbol.setScope(functionScope);
+        currentScope = functionScope;
+
+        // إضافة parameters إلى الـ scope الجديد
+        if (node.params != null) {
+            for (ParamNode param : node.params) {
+                System.out.println("Parameter: " + param.name);
+                param.accept(this); // visitParamNode
+            }
+        }
+
+        // زيارة جسم الدالة
+        if (node.body != null) {
+            node.body.accept(this);
+        }
+
+        // العودة للـ scope السابق
+        currentScope = previous;
+
         return null;
     }
 
@@ -39,162 +81,58 @@ public class SemanticAnalyzer implements ASTVisitor<Void> {
             node.unit.accept(this);
         }
 
-        // زيارة التعبير أولاً ليتم حساب dimension
         node.expression.accept(this);
-
-        // الآن نعرف dimension
-        node.dimension = node.expression.dimension;
-
-        VariableSymbol symbol = new VariableSymbol(node.varId.name, node.dimension);
 
         if (currentScope.existsInCurrentScope(node.varId.name)) {
             System.out.println("Semantic Error: variable already declared: " + node.varId.name);
-        } else {
-            currentScope.define(symbol);
+            return null;
         }
 
-        return null;
+        Dimension dimension = (node.unit != null) ? node.unit.dimension : Dimension.NONE;
 
-    }
+        VariableSymbol symbol = new VariableSymbol(
+                node.varId.name,
+                dimension,
+                node.expression
+        );
 
-
-    @Override
-    public Void visitBinaryOpNode(BinaryOpNode node) {
-
-        node.left.accept(this);
-        node.right.accept(this);
-
-        Dimension leftDim = node.left.dimension;
-        Dimension rightDim = node.right.dimension;
-
-        if (node.op == '+' || node.op == '-') {
-
-            if (leftDim == rightDim) {
-
-                node.dimension = leftDim;
-
-                System.out.println(
-                        "Dimension match: " + leftDim + " " + node.op + " " + rightDim
-                );
-
-            } else {
-
-                node.dimension = Dimension.NONE;
-
-                System.out.println(
-                        "Semantic Error: Dimension mismatch: "
-                                + leftDim + " " + node.op + " " + rightDim
-                );
-            }
-
-        }
-        else if (node.op == '*') {
-
-            // حالياً لا نشتق dimension جديد
-            node.dimension = Dimension.NONE;
-
-        }
-        else if (node.op == '/') {
-
-            // مثال بسيط
-            if (leftDim == Dimension.LENGTH && rightDim == Dimension.TIME) {
-
-                node.dimension = Dimension.SPEED;
-
-            } else {
-
-                node.dimension = Dimension.NONE;
-
-            }
-        }
-
-        System.out.println("BinaryOpNode Dimension: " + node.dimension);
+        currentScope.define(symbol);
 
         return null;
     }
 
     @Override
-    public Void visitNumberLiteralNode(NumberLiteralNode node) {
-
-        if (node.unitNode != null) {
-            node.unitNode.accept(this);
-
-            node.dimension = node.unitNode.dimension;
-            node.toBaseFactor = node.unitNode.toBaseFactor;
-        } else {
-            node.dimension = Dimension.NONE;
-            node.toBaseFactor = 1.0;
-        }
-
-        return null;
-    }
-
-    // باقي visit methods ممكن تتركها فارغة مؤقتًا
-    @Override
-    public Void visitPowerNode(PowerNode node) {
+    public Void visitExprStmtNode(ExprStmtNode node) {
+        node.expr.accept(this);
         return null;
     }
 
     @Override
-    public Void visitIntNode(IntNode node) {
+    public Void visitStatementNode(StatementNode node) {
         return null;
     }
 
-    @Override
-    public Void visitFactorialNode(FactorialNode node) {
-        return null;
-    }
-
-    @Override
-    public Void visitTermNode(TermNode node) {
-        return null;
-    }
-
-    @Override
-    public Void visitFunDeclNode(FunDeclNode node) {
-
-
-        // إنشاء scope جديد للدالة
-        SymbolTable previous = currentScope;
-        currentScope = new SymbolTable(previous);
-
-        if (node.params != null) {
-            for (ParamNode param : node.params) {
-                param.accept(this);
-            }        }
-
-        node.body.accept(this);
-        System.out.println("Finished visiting function: " + node.funcId.name);
-        // العودة للـ scope السابق
-        currentScope = previous;
-
-        return null;    }
-
-    @Override
-    public Void visitFunctionNode(FunctionNode node) {
-//        currentScope.define(new FunctionSymbol(node.getName().name, null, Dimension.NONE));
-        return null;
-    }
-
-    @Override
-    public Void visitFuncCallNode(FuncCallNode node) {
-        return null;
-    }
-
+    // -------------------------
+    // Parameters & Arguments
+    // -------------------------
     @Override
     public Void visitParamListNode(ParamListNode node) {
+        if (node.paramNodeList != null) {
+            for (ParamNode param : node.paramNodeList) {
+                param.accept(this); // كل ParamNode يضيف نفسه للـ currentScope
+            }
+        }
         return null;
     }
 
     @Override
     public Void visitParamNode(ParamNode node) {
-
-        node.unit.accept(this);
-
-        VariableSymbol param = new VariableSymbol(node.name, node.dimension);
-
+        if (node.unit != null) {
+            node.unit.accept(this);
+            node.dimension = node.unit.dimension;
+        }
+        VariableSymbol param = new VariableSymbol(node.name, node.dimension, null);
         currentScope.define(param);
-
         return null;
     }
 
@@ -204,47 +142,158 @@ public class SemanticAnalyzer implements ASTVisitor<Void> {
         VariableSymbol symbol = (VariableSymbol) currentScope.resolve(node.name);
 
         if (symbol == null) {
-
             System.out.println("Semantic Error: variable not declared: " + node.name);
-
             node.dimension = Dimension.NONE;
             node.toBaseFactor = 1.0;
-
             return null;
         }
 
-        // أخذ المعلومات من SymbolTable
         node.dimension = symbol.getDimension();
-
         return null;
     }
 
     @Override
-    public Void visitStatementNode(StatementNode node) {
+    public Void visitFuncCallNode(FuncCallNode node) {
+
+        System.out.println("Function Calling: " + node.funcId.name);
+
+        // 1️⃣ resolve symbol
+        Symbol symbol = currentScope.resolve(node.funcId.name);
+
+        // التأكد أن الاسم موجود
+        if (symbol == null) {
+            System.out.println("Semantic Error: function not declared: " + node.funcId.name);
+            node.dimension = Dimension.NONE;
+            return null;
+        }
+
+        // التأكد أنه Function
+        if (!(symbol instanceof FunctionSymbol)) {
+            System.out.println("Semantic Error: '" + node.funcId.name + "' is not a function");
+            node.dimension = Dimension.NONE;
+            return null;
+        }
+
+        FunctionSymbol funcSymbol = (FunctionSymbol) symbol;
+
+        // 2️⃣ الحصول على parameters
+        List<ParamNode> params = funcSymbol.getParameters();
+        List<ASTNode> args = node.args;
+
+        // 3️⃣ التحقق من عدد arguments
+        if (params != null && args.size() != params.size()) {
+            System.out.println("Semantic Error: wrong number of arguments in call to "
+                    + node.funcId.name +
+                    ". Expected " + params.size() +
+                    " but got " + args.size());
+        }
+
+        // 4️⃣ زيارة arguments ومقارنتها مع parameters
+        for (int i = 0; i < args.size(); i++) {
+
+            ASTNode arg = args.get(i);
+            arg.accept(this);
+
+            if (params != null && i < params.size()) {
+
+                ParamNode param = params.get(i);
+
+                System.out.println("Arg " + (i+1) + " -> " + arg.dimension +
+                        " | Param -> " + param.dimension);
+
+                if (arg.dimension != param.dimension) {
+                    System.out.println("Semantic Error: Argument " + (i+1) + " in function '"
+                            + node.funcId.name +
+                            "' has dimension mismatch. Expected: "
+                            + param.dimension +
+                            ", but got: " + arg.dimension + ".");
+                }
+            }
+        }
+
+        // 5️⃣ تحديد dimension الناتجة من الدالة
+        node.dimension = funcSymbol.getDimension();
+
         return null;
     }
 
+    //Das ist interface
+    @Override
+    public Void visitFunctionNode(FunctionNode node) {
+        return null;
+    }
+
+    // -------------------------
+    // Expressions
+    // -------------------------
+    @Override
+    public Void visitBinaryOpNode(BinaryOpNode node) {
+        node.left.accept(this);
+        node.right.accept(this);
+
+        Dimension leftDim = node.left.dimension;
+        Dimension rightDim = node.right.dimension;
+
+        if (node.op == '+' || node.op == '-') {
+            if (leftDim == rightDim) {
+                node.dimension = leftDim;
+                System.out.println("Dimension match: " + leftDim + " " + node.op + " " + rightDim);
+            } else {
+                node.dimension = Dimension.NONE;
+                System.out.println("Semantic Error: Dimension mismatch: " + leftDim + " " + node.op + " " + rightDim);
+            }
+        } else if (node.op == '*') {
+            node.dimension = Dimension.NONE;
+        } else if (node.op == '/') {
+            if (leftDim == Dimension.LENGTH && rightDim == Dimension.TIME) {
+                node.dimension = Dimension.SPEED;
+            } else {
+                node.dimension = Dimension.NONE;
+            }
+        }
+
+        System.out.println("BinaryOpNode Dimension: " + node.dimension);
+        return null;
+    }
 
     @Override
-    public Void visitBaseUnitNode(BaseUnitNode node) {
+    public Void visitTermNode(TermNode node) {
+        return null;
+    }
 
-        if (UnitRegistry.UNIT_TABLE.containsKey(node.symbol)) {
-            UnitInfo unitInfo = UnitRegistry.UNIT_TABLE.get(node.symbol);
-            node.dimension = unitInfo.getUnitCategory();
-            node.toBaseFactor = unitInfo.getToBaseFactor();
+    @Override
+    public Void visitFactorialNode(FactorialNode node) {
+        return null;
+    }
 
+    @Override
+    public Void visitPowerNode(PowerNode node) {
+        return null;
+    }
+
+    @Override
+    public Void visitNumberLiteralNode(NumberLiteralNode node) {
+        if (node.unitNode != null) {
+            node.unitNode.accept(this);
+            node.dimension = node.unitNode.dimension;
+            node.toBaseFactor = node.unitNode.toBaseFactor;
         } else {
-
             node.dimension = Dimension.NONE;
             node.toBaseFactor = 1.0;
-            System.out.println("Unbekannte Einheit: " + node.symbol);
         }
         return null;
     }
 
     @Override
-    public Void visitUnitNode(UnitNode node) {
+    public Void visitIntNode(IntNode node) {
+        return null;
+    }
 
+    // -------------------------
+    // Units
+    // -------------------------
+    @Override
+    public Void visitUnitNode(UnitNode node) {
         node.left.accept(this);
         if (node.isDivision()) {
             node.right.accept(this);
@@ -254,7 +303,6 @@ public class SemanticAnalyzer implements ASTVisitor<Void> {
             node.dimension = node.left.dimension;
             node.toBaseFactor = node.left.toBaseFactor;
         } else {
-            // مثال: LENGTH / TIME → SPEED
             if (node.left.dimension == Dimension.LENGTH && node.right.dimension == Dimension.TIME) {
                 node.dimension = Dimension.SPEED;
                 node.toBaseFactor = node.left.toBaseFactor / node.right.toBaseFactor;
@@ -265,12 +313,40 @@ public class SemanticAnalyzer implements ASTVisitor<Void> {
             }
         }
 
-        System.out.println("Visiting UnitNode: " + node.left.symbol +
-                (node.isDivision() ? " / " + node.right.symbol : "") +
-                " -> Dimension: " + node.dimension + ", Factor: " + node.toBaseFactor);
-
+//        System.out.println("Visiting UnitNode: " + node.left.symbol +
+//                (node.isDivision() ? " / " + node.right.symbol : "") +
+//                " -> Dimension: " + node.dimension + ", Factor: " + node.toBaseFactor);
         return null;
     }
 
+    @Override
+    public Void visitBaseUnitNode(BaseUnitNode node) {
+        if (UnitRegistry.UNIT_TABLE.containsKey(node.symbol)) {
+            UnitInfo unitInfo = UnitRegistry.UNIT_TABLE.get(node.symbol);
+            node.dimension = unitInfo.getUnitCategory();
+            node.toBaseFactor = unitInfo.getToBaseFactor();
+        } else {
+            node.dimension = Dimension.NONE;
+            node.toBaseFactor = 1.0;
+            System.out.println("Unbekannte Einheit: " + node.symbol);
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitIfNode(IfNode node) {
+        node.condition.accept(this);
+        node.thenBranch.accept(this);
+        node.elseBranch.accept(this);
+
+        if (node.thenBranch.dimension != node.elseBranch.dimension) {
+            System.out.println("Semantic Error: if branches must have same dimension");
+            node.dimension = Dimension.NONE;
+        } else {
+            node.dimension = node.thenBranch.dimension;
+        }
+
+        return null;
+    }
 
 }

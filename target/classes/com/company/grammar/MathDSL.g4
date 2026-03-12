@@ -10,9 +10,9 @@ prog
 
 // --- Statements ---
 statement
-    : funDecl
-    | letDecl
-    | exprStmt
+    : funDecl SEMI
+    | letDecl SEMI
+    | exprStmt SEMI
     ;
 
 funDecl
@@ -72,6 +72,7 @@ primary
     | ID LPAREN argList? RPAREN // function call: f(...)
     | ID                        // variable reference
     | LPAREN expr RPAREN
+    | IF expr THEN expr ELSE expr
     ;
 
 // ==================
@@ -82,6 +83,10 @@ primary
 FUN   : 'fun';
 LET   : 'let';
 
+// Control flow
+IF   : 'if';
+THEN : 'then';
+ELSE : 'else';
 
 
 // Tokens
@@ -102,6 +107,9 @@ MULTI : '*' ;
 DIV   : '/' ;
 FACT  : '!' ;
 POWER : '^' ;
+SEMI : ';' ;
+
+
 
 // Whitespace
 WS    : [ \t\r\n]+ -> skip ;

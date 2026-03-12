@@ -37,6 +37,6 @@ public interface ASTVisitor<T> {
     // Units
     T visitUnitNode(UnitNode node);
     T visitBaseUnitNode(BaseUnitNode node);
-
+    T visitIfNode(IfNode node);
 
 }

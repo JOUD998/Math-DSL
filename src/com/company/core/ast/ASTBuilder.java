@@ -167,7 +167,8 @@ public class ASTBuilder extends MathDSLBaseVisitor<ASTNode> {
                 unit = (UnitNode) visit(ctx.unit());
             }
             return new NumberLiteralNode(value, unit);
-        } else if (ctx.ID() != null) {
+        }
+        else if (ctx.ID() != null) {
             if (ctx.LPAREN() != null && ctx.RPAREN() != null) {
                 List<ASTNode> args = new ArrayList<>();
                 if (ctx.argList() != null) {
@@ -182,6 +183,12 @@ public class ASTBuilder extends MathDSLBaseVisitor<ASTNode> {
             } else {
                 return new IdNode(ctx.ID().getText());
             }
+        } else if (ctx.IF() != null) {
+            return new IfNode(
+                    (ASTNode) visit(ctx.expr(0)),
+                    (ASTNode) visit(ctx.expr(1)),
+                    (ASTNode) visit(ctx.expr(2))
+            );
         }
 
         return super.visitPrimary(ctx);

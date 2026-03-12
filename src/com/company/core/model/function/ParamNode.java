@@ -11,6 +11,7 @@ public class ParamNode extends ASTNode {
 
     public ParamNode(String name){
         this.name = name;
+
     }
     public ParamNode(String name, UnitNode unit){
         this.name = name;

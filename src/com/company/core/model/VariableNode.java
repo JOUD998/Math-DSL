@@ -14,6 +14,7 @@ public class VariableNode extends StatementNode {
         this.varId = varId;
         this.unit = unit;
         this.expression = expression;
+
     }
 
     @Override

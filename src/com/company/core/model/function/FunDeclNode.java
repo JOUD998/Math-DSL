@@ -12,7 +12,7 @@ import java.util.List;
 public class FunDeclNode extends StatementNode implements FunctionNode {
 
     public IdNode funcId;
-    public List<ParamNode> params = new ArrayList<>();
+    public List<ParamNode> params;
     public UnitNode returnType;
     public ASTNode body;
 
