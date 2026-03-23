@@ -1,10 +1,10 @@
 package com.company.core.semantic;
 
-import com.company.core.model.*;
-import com.company.core.model.function.*;
-import com.company.core.model.statment.StatementNode;
-import com.company.core.model.unit.BaseUnitNode;
-import com.company.core.model.unit.UnitNode;
+import com.company.core.ast.*;
+import com.company.core.ast.function.*;
+import com.company.core.ast.statment.StatementNode;
+import com.company.core.ast.unit.BaseUnitNode;
+import com.company.core.ast.unit.UnitNode;
 
 public interface ASTVisitor<T> {
 

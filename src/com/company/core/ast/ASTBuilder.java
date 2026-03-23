@@ -1,11 +1,10 @@
 package com.company.core.ast;
-import com.company.core.model.*;
-import com.company.core.model.function.FunDeclNode;
-import com.company.core.model.function.FuncCallNode;
-import com.company.core.model.function.ParamListNode;
-import com.company.core.model.function.ParamNode;
-import com.company.core.model.unit.BaseUnitNode;
-import com.company.core.model.unit.UnitNode;
+import com.company.core.ast.function.FunDeclNode;
+import com.company.core.ast.function.FuncCallNode;
+import com.company.core.ast.function.ParamListNode;
+import com.company.core.ast.function.ParamNode;
+import com.company.core.ast.unit.BaseUnitNode;
+import com.company.core.ast.unit.UnitNode;
 import com.company.grammar.MathDSLBaseVisitor;
 import com.company.grammar.MathDSLParser;
 import java.util.ArrayList;
@@ -26,9 +25,11 @@ public class ASTBuilder extends MathDSLBaseVisitor<ASTNode> {
     public ASTNode visitStatement(MathDSLParser.StatementContext ctx) {
         if (ctx.funDecl() != null) {
             return visit(ctx.funDecl());
-        } else if (ctx.letDecl() != null) {
+        }
+        else if (ctx.letDecl() != null) {
             return visit(ctx.letDecl());
-        } else {
+        }
+        else {
             return visit(ctx.exprStmt());
         }
     }

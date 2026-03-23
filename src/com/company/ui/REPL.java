@@ -1,9 +1,9 @@
 package com.company.ui;
 
 import com.company.core.ast.ASTBuilder;
-import com.company.core.evaluation.EvaluationResult;
-import com.company.core.evaluation.Interpreter;
-import com.company.core.model.ASTNode;
+import com.company.core.engine.EvaluationResult;
+import com.company.core.engine.Interpreter;
+import com.company.core.ast.ASTNode;
 import com.company.core.semantic.SemanticAnalyzer;
 import com.company.core.semantic.TermRewriter;
 import com.company.grammar.MathDSLLexer;
@@ -49,6 +49,7 @@ public class REPL {
                 // 3️⃣ AST Builder
                 ASTBuilder astBuilder = new ASTBuilder();
                 ASTNode ast = astBuilder.visitProg(tree);
+                System.out.println("AST (Readable): " + ast.toJson());
 
                 // 4️⃣ Semantic Analysis
                 ast.accept(analyzer);
@@ -56,19 +57,22 @@ public class REPL {
                 // 5️⃣ Term Rewriter (Optimization)
                 TermRewriter termRewriter = new TermRewriter(analyzer.currentScope);
                 ASTNode simplifiedAst = ast.accept(termRewriter);
+                System.out.println("Optimized AST after rewriter (Readable): " + simplifiedAst.toJson());
                 analyzer.currentScope.printTree();
                 // 6️⃣ Interpreter (Execution) 🚀
                 Interpreter interpreter = new Interpreter(analyzer.currentScope);
                 EvaluationResult finalResult = simplifiedAst.accept(interpreter);
                 System.out.println("---------------------------------");
-                System.out.println("AST (JSON): " + simplifiedAst.toJson());
+                System.out.println("AST after interpreter (JSON): " + simplifiedAst.toJson());
                 System.out.println("---------------------------------");
 
                 // 7️⃣ Display Results
                 if (finalResult != null) {
                     System.out.println("Interpreter: ");
                     System.out.println("Value: " + finalResult.value());
-                    System.out.println("Unit:  [" + finalResult.dimension().toReadableString() + "]");
+                    System.out.println("Unit:  [" + finalResult.dimension().toBaseUnitString() + "]");
+                    System.out.println("Dimension:  [" + finalResult.dimension().toReadableString() + "]");
+
                     System.out.println("---------------------------------");
                 }
 

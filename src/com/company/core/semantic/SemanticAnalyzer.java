@@ -1,12 +1,12 @@
 package com.company.core.semantic;
 
-import com.company.core.model.*;
-import com.company.core.model.function.*;
-import com.company.core.model.statment.StatementNode;
-import com.company.core.model.unit.BaseUnitNode;
-import com.company.core.model.unit.UnitNode;
-import com.company.core.semantic.unit.Dimension;
-import com.company.core.semantic.unit.UnitRegistry;
+import com.company.core.ast.*;
+import com.company.core.ast.function.*;
+import com.company.core.ast.statment.StatementNode;
+import com.company.core.ast.unit.BaseUnitNode;
+import com.company.core.ast.unit.UnitNode;
+import com.company.core.unit.Dimension;
+import com.company.core.unit.UnitRegistry;
 import com.company.core.symbol_table.FunctionSymbol;
 import com.company.core.symbol_table.Symbol;
 import com.company.core.symbol_table.SymbolTable;
@@ -18,6 +18,8 @@ public class SemanticAnalyzer implements ASTVisitor<Void> {
 
     //my global symbol table, will be updated as we enter new scopes (like functions)
     public SymbolTable currentScope = new SymbolTable(null);
+
+    //todo fun x(a) = a Error: Error: Variable 'a' is not defined.
 
     // -------------------------
     // prog → statement* EOF
@@ -37,25 +39,22 @@ public class SemanticAnalyzer implements ASTVisitor<Void> {
 
     @Override
     public Void visitFunDeclNode(FunDeclNode node) {
+
         SymbolTable previous = currentScope;
 
         if (previous.existsInCurrentScope(node.funcId.name)) {
             throw new RuntimeException("Semantic Error: function already declared: " + node.funcId.name);
         }
-
-        // 1. استخراج الأبعاد من الـ returnType أولاً
         Dimension declaredReturnDim = new Dimension(); // الافتراضي NONE
         if (node.returnType != null) {
             node.returnType.accept(this);
             declaredReturnDim = node.returnType.dimension;
         }
 
-        // 2. تعريف الدالة مؤقتاً في الجدول (عشان الـ Recursion)
-        FunctionSymbol funcSymbol = new FunctionSymbol(node.funcId.name, node.params, declaredReturnDim);
+        FunctionSymbol funcSymbol = new FunctionSymbol(node.funcId.name, node.params, declaredReturnDim, node.body);
         previous.define(funcSymbol);
 
         try {
-            // 3. إنشاء السكوب الخاص بالدالة ومعالجة البارامترات
             SymbolTable functionScope = new SymbolTable(previous);
             funcSymbol.setScope(functionScope);
             currentScope = functionScope;
@@ -70,22 +69,24 @@ public class SemanticAnalyzer implements ASTVisitor<Void> {
             if (node.body != null) {
                 node.body.accept(this);
                 Dimension bodyDim = node.body.dimension;
+                System.out.println(node.body.toJson());
+
+                if (node.body instanceof IdNode idNode){
+                    System.out.println("This is id in body: " + idNode.name);
+                    System.out.println("my Symbol Table" ); currentScope.printTree();
+                }
 
                 if (!declaredReturnDim.isNone()) {
                     if (!bodyDim.equals(declaredReturnDim)) {
-                        // هون "المصيدة": إذا الوحدات ما تطابقت، منرمي خطأ
                         throw new RuntimeException("Return type mismatch: Expected " +
                                 declaredReturnDim.toReadableString() + " but body is " + bodyDim.toReadableString());
                     }
                 }
             }
         } catch (RuntimeException e) {
-            // 5. الـ Rollback: حذف الدالة من جدول الرموز إذا صار أي خطأ سيمانتيك
             previous.remove(node.funcId.name);
-            // إعادة رمي الخطأ عشان الـ REPL يعرف إن العملية فشلت وما يكمل للـ Interpreter
             throw e;
         } finally {
-            // العودة دائماً للسكوب الأب مهما صار
             currentScope = previous;
         }
 

@@ -1,8 +1,7 @@
 package com.company.ui;
 
-import com.company.core.SyntaxErrorListener;
 import com.company.core.ast.ASTBuilder;
-import com.company.core.model.ASTNode;
+import com.company.core.ast.ASTNode;
 import com.company.core.semantic.SemanticAnalyzer;
 import com.company.core.semantic.TermRewriter;
 import com.company.grammar.MathDSLLexer;
