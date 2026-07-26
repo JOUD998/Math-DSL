@@ -1,4 +1,4 @@
-# MathEscapeDSL
+# MathDSL
 
 > A domain-specific language (DSL) for mathematical expressions built with Java and ANTLR 4. The project implements a complete compiler pipeline, including parsing, semantic analysis, AST rewriting, interpretation, and mathematical dimension-based unit inference.
 
