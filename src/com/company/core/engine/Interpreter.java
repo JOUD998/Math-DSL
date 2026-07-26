@@ -43,7 +43,6 @@ public class Interpreter implements ASTVisitor<EvaluationResult> {
     @Override
     public EvaluationResult visitVariableNode(VariableNode node) {
         EvaluationResult exprResult = node.expression.accept(this);
-
         Symbol symbol = currentScope.resolve(node.varId.name);
         Dimension finalDim = exprResult.dimension();
 
@@ -67,7 +66,8 @@ public class Interpreter implements ASTVisitor<EvaluationResult> {
         return switch (node.op) {
             case '+' -> new EvaluationResult(left.value() + right.value(), left.dimension());
             case '-' -> new EvaluationResult(left.value() - right.value(), left.dimension());
-            case '*' -> new EvaluationResult(left.value() * right.value(), left.dimension().multiply(right.dimension()));
+            case '*' ->
+                    new EvaluationResult(left.value() * right.value(), left.dimension().multiply(right.dimension()));
             case '/' -> new EvaluationResult(left.value() / right.value(), left.dimension().divide(right.dimension()));
             default -> throw new RuntimeException("Operator not implemented: " + node.op);
         };
@@ -76,7 +76,19 @@ public class Interpreter implements ASTVisitor<EvaluationResult> {
 
     @Override
     public EvaluationResult visitPowerNode(PowerNode node) {
-        return null;
+
+        EvaluationResult base = node.base.accept(this);
+        EvaluationResult exp = node.exponent.accept(this);
+
+        int exponentInt = (int) exp.value();
+        double resultValue = Math.pow(base.value(), exponentInt);
+
+        Dimension resultDim = base.dimension();
+        for (int i = 1; i < exponentInt; i++) {
+            resultDim = resultDim.multiply(base.dimension());
+        }
+
+        return new EvaluationResult(resultValue, resultDim);
     }
 
     @Override
@@ -98,6 +110,7 @@ public class Interpreter implements ASTVisitor<EvaluationResult> {
     public EvaluationResult visitTermNode(TermNode node) {
         return null;
     }
+
     @Override
     public EvaluationResult visitFunctionNode(FunctionNode node) {
         return null;
@@ -105,43 +118,36 @@ public class Interpreter implements ASTVisitor<EvaluationResult> {
 
     @Override
     public EvaluationResult visitFunDeclNode(FunDeclNode node) {
-
         return null;
     }
 
-
     @Override
     public EvaluationResult visitFuncCallNode(FuncCallNode node) {
-        // 1. جلب رمز الدالة من الـ Symbol Table
+
         FunctionSymbol fs = (FunctionSymbol) currentScope.resolve(node.getName().name);
 
-        // 2. حساب قيم الـ Arguments في السكوب "الحالي" (قبل الدخول للدالة)
         List<EvaluationResult> argResults = new ArrayList<>();
+
         for (ASTNode arg : node.args) {
             argResults.add(arg.accept(this));
         }
 
-        // 3. إنشاء سكوب جديد للتنفيذ (Execution Scope)
-        // أبوه هو الـ Scope اللي تعرّفت فيه الدالة (Static Scope)
         SymbolTable executionScope = new SymbolTable(fs.getScope());
 
-        // 4. ربط قيم الـ Arguments بأسماء الـ Parameters داخل السكوب الجديد
         for (int i = 0; i < fs.getParameters().size(); i++) {
             String paramName = fs.getParameters().get(i).name;
             EvaluationResult res = argResults.get(i);
 
-            // تعريف متغير محلي جديد بالدالة وإعطاؤه القيمة المحسوبة
             VariableSymbol vs = new VariableSymbol(paramName, res.dimension(), null);
             vs.setValue(res.value());
             executionScope.define(vs);
         }
 
-        // 5. تبديل السكوب الحالي لتنفيذ جسم الدالة
         SymbolTable previousScope = this.currentScope;
+
         this.currentScope = executionScope;
 
         try {
-            // 6. تنفيذ جسم الدالة (Body) وإرجاع النتيجة
             return fs.getBody().accept(this);
         } finally {
             this.currentScope = previousScope;
@@ -151,8 +157,6 @@ public class Interpreter implements ASTVisitor<EvaluationResult> {
 
     @Override
     public EvaluationResult visitParamListNode(ParamListNode node) {
-
-
         return null;
     }
 

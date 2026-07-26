@@ -13,28 +13,37 @@ import java.util.Scanner;
 
 public class REPL {
 
+
+
+
+
+
+
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         System.out.println("=== Math-DSL Interactive REPL ===");
         System.out.println("Type 'exit' to quit, 'clear' to reset scope.");
         System.out.println("---------------------------------");
 
-        // نحتفظ بـ analyzer واحد خارج الـ loop للحفاظ على الرموز (Variables)
         SemanticAnalyzer analyzer = new SemanticAnalyzer();
 
+        StringBuilder inputBuffer = new StringBuilder();
+
         while (true) {
-            System.out.print(">> ");
-            String input = scanner.nextLine();
 
-            if (input.equalsIgnoreCase("exit")) break;
-            if (input.trim().isEmpty()) continue;
-            if (input.equalsIgnoreCase("clear")) {
-                analyzer = new SemanticAnalyzer();
-                System.out.println("Scope cleared.");
-                continue;
-            }
 
-            if (!input.endsWith(";")) input += ";";
+
+            System.out.print(inputBuffer.isEmpty() ? ">> " : ".. ");
+            String line = scanner.nextLine();
+            if (line.equalsIgnoreCase("exit")) break;
+            if (line.trim().isEmpty()) continue;
+
+            inputBuffer.append(line).append(" ");
+
+            if (!line.trim().endsWith(";")) continue;
+
+            String input = inputBuffer.toString().trim();
+            inputBuffer.setLength(0); // نفضي الـ buffer
 
             try {
                 // 1️⃣ Lexer & Tokens
@@ -49,14 +58,14 @@ public class REPL {
                 // 3️⃣ AST Builder
                 ASTBuilder astBuilder = new ASTBuilder();
                 ASTNode ast = astBuilder.visitProg(tree);
-                System.out.println("AST (JSON): " + ast.toJson());
+//                System.out.println("AST (JSON): " + ast.toJson());
                 // 4️⃣ Semantic Analysis
                 ast.accept(analyzer);
 
                 // 5️⃣ Term Rewriter (Optimization)
                 TermRewriter termRewriter = new TermRewriter(analyzer.currentScope);
                 ASTNode simplifiedAst = ast.accept(termRewriter);
-                System.out.println("Optimized AST (JSON): " + simplifiedAst.toJson());
+//                System.out.println("Optimized AST (JSON): " + simplifiedAst.toJson());
                 analyzer.currentScope.printTree();
                 // 6️⃣ Interpreter (Execution) 🚀
                 Interpreter interpreter = new Interpreter(analyzer.currentScope);
@@ -67,12 +76,12 @@ public class REPL {
 
                 // 7️⃣ Display Results
                 if (finalResult != null) {
-                    System.out.println("Interpreter: ");
-                    System.out.println("Value: " + finalResult.value());
+                    System.out.println("Result: " + Math.round(finalResult.value() * 100.0) / 100.0);
                     System.out.println("Unit:  [" + finalResult.dimension().toBaseUnitString() + "]");
                     System.out.println("---------------------------------");
                 }
 
+                analyzer.currentScope.printTree();
 
             } catch (Exception e) {
                 System.err.println("❌Error: " + e.getMessage());
@@ -82,4 +91,3 @@ public class REPL {
         System.out.println("Goodbye!");
     }
 }
-        //let t:s= 2000 ms

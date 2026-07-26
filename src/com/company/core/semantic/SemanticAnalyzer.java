@@ -16,17 +16,11 @@ import java.util.List;
 
 public class SemanticAnalyzer implements ASTVisitor<Void> {
 
-    //my global symbol table, will be updated as we enter new scopes (like functions)
     public SymbolTable currentScope = new SymbolTable(null);
 
-    //todo fun x(a) = a Error: Error: Variable 'a' is not defined.
 
-    // -------------------------
-    // prog → statement* EOF
-    // -------------------------
     @Override
     public Void visitProgramNode(ProgramNode node) {
-//        currentScope = new SymbolTable(null); // GLOBAL SCOPE
         for (ASTNode stmt : node.statements) {
             stmt.accept(this);
         }
@@ -36,6 +30,45 @@ public class SemanticAnalyzer implements ASTVisitor<Void> {
     // -------------------------
     // Statements
     // -------------------------
+
+
+
+    @Override
+    public Void visitVariableNode(VariableNode node) {
+        node.expression.accept(this);
+        Dimension exprDim = node.expression.dimension;
+
+        if (currentScope.existsInCurrentScope(node.varId.name)) {
+            throw new RuntimeException("Semantic Error: variable already declared: " + node.varId.name);
+        }
+
+        Dimension finalDimension;
+
+        if (node.unit != null) {
+            node.unit.accept(this);
+            Dimension explicitDim = node.unit.dimension;
+
+            // حالة let x:s = 1m (خطأ تضارب)
+            if (!exprDim.isNone() && !exprDim.equals(explicitDim)) {
+                throw new RuntimeException("Semantic Error: Dimension mismatch! Expected " + explicitDim + " but got " + exprDim);
+            }
+
+            finalDimension = explicitDim; // نعتمد الوحدة الصريحة (حالة let x:m = 1)
+        } else {
+            // حالة let x = 1m (استنتاج النوع)
+            finalDimension = exprDim;
+        }
+
+        // 4. تخزين الرمز بالبُعد الصحيح (مو NONE!)
+        VariableSymbol symbol = new VariableSymbol(
+                node.varId.name,
+                finalDimension,
+                node.expression
+        );
+
+        currentScope.define(symbol);
+        return null;
+    }
 
     @Override
     public Void visitFunDeclNode(FunDeclNode node) {
@@ -86,94 +119,6 @@ public class SemanticAnalyzer implements ASTVisitor<Void> {
             currentScope = previous;
         }
 
-        return null;
-    }
-
-    @Override
-    public Void visitVariableNode(VariableNode node) {
-        // 1. تحليل التعبير أولاً (عشان نعرف أبعاده إذا كانت 10m مثلاً)
-        node.expression.accept(this);
-        Dimension exprDim = node.expression.dimension;
-
-        if (currentScope.existsInCurrentScope(node.varId.name)) {
-            throw new RuntimeException("Semantic Error: variable already declared: " + node.varId.name);
-        }
-
-        Dimension finalDimension;
-
-        if (node.unit != null) {
-            node.unit.accept(this); // تحليل الوحدة الصريحة مثل :m
-            Dimension explicitDim = node.unit.dimension;
-
-            // حالة let x:s = 1m (خطأ تضارب)
-            if (!exprDim.isNone() && !exprDim.equals(explicitDim)) {
-                throw new RuntimeException("Semantic Error: Dimension mismatch! Expected " + explicitDim + " but got " + exprDim);
-            }
-
-            finalDimension = explicitDim; // نعتمد الوحدة الصريحة (حالة let x:m = 1)
-        } else {
-            // حالة let x = 1m (استنتاج النوع)
-            finalDimension = exprDim;
-        }
-
-        // 4. تخزين الرمز بالبُعد الصحيح (مو NONE!)
-        VariableSymbol symbol = new VariableSymbol(
-                node.varId.name,
-                finalDimension,
-                node.expression
-        );
-
-        currentScope.define(symbol);
-        return null;
-    }
-
-    @Override
-    public Void visitExprStmtNode(ExprStmtNode node) {
-        node.expr.accept(this);
-        return null;
-    }
-
-    @Override
-    public Void visitStatementNode(StatementNode node) {
-        return null;
-    }
-
-    // -------------------------
-    // Parameters & Arguments
-    // -------------------------
-    @Override
-    public Void visitParamListNode(ParamListNode node) {
-        if (node.paramNodeList != null) {
-            for (ParamNode param : node.paramNodeList) {
-                param.accept(this); // كل ParamNode يضيف نفسه للـ currentScope
-            }
-        }
-        return null;
-    }
-
-    @Override
-    public Void visitParamNode(ParamNode node) {
-        if (node.unit != null) {
-            node.unit.accept(this);
-            node.dimension = node.unit.dimension;
-        }
-        VariableSymbol param = new VariableSymbol(node.name, node.dimension, null);
-        currentScope.define(param);
-        return null;
-    }
-
-    @Override
-    public Void visitIdNode(IdNode node) {
-
-        Symbol symbol = currentScope.resolve(node.name);
-
-        if (!(symbol instanceof VariableSymbol)) {
-            node.dimension = new Dimension();
-            throw new RuntimeException("Semantic Error: variable not declared: " + node.name);
-        }
-
-        VariableSymbol var = (VariableSymbol) symbol;
-        node.dimension = var.getDimension();
         return null;
     }
 
@@ -238,6 +183,57 @@ public class SemanticAnalyzer implements ASTVisitor<Void> {
         return null;
     }
 
+    @Override
+    public Void visitExprStmtNode(ExprStmtNode node) {
+        node.expr.accept(this);
+        return null;
+    }
+
+    @Override
+    public Void visitStatementNode(StatementNode node) {
+        return null;
+    }
+
+    // -------------------------
+    // Parameters & Arguments
+    // -------------------------
+    @Override
+    public Void visitParamListNode(ParamListNode node) {
+        if (node.paramNodeList != null) {
+            for (ParamNode param : node.paramNodeList) {
+                param.accept(this); // كل ParamNode يضيف نفسه للـ currentScope
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitParamNode(ParamNode node) {
+        if (node.unit != null) {
+            node.unit.accept(this);
+            node.dimension = node.unit.dimension;
+        }
+        VariableSymbol param = new VariableSymbol(node.name, node.dimension, null);
+        currentScope.define(param);
+        return null;
+    }
+
+    @Override
+    public Void visitIdNode(IdNode node) {
+
+        Symbol symbol = currentScope.resolve(node.name);
+
+        if (!(symbol instanceof VariableSymbol)) {
+            node.dimension = new Dimension();
+            throw new RuntimeException("Semantic Error: variable not declared: " + node.name);
+        }
+
+        VariableSymbol var = (VariableSymbol) symbol;
+        node.dimension = var.getDimension();
+        return null;
+    }
+
+
     //Das ist interface
     @Override
     public Void visitFunctionNode(FunctionNode node) {
@@ -283,20 +279,16 @@ public class SemanticAnalyzer implements ASTVisitor<Void> {
     public Void visitPowerNode(PowerNode node) {
         node.base.accept(this);
 
-        // 2. التحقق من أن الأس هو رقم مباشر (Literal) حصراً
         if (!(node.exponent instanceof NumberLiteralNode)) {
             throw new RuntimeException("Semantic Error: Exponent must be a literal integer (e.g., 2, 3). Expressions or variables are not allowed as exponents.");
         }
 
         NumberLiteralNode exp = (NumberLiteralNode) node.exponent;
 
-        // 3. التأكد أنه عدد صحيح (Ganzzahlig)
         if (exp.value != Math.floor(exp.value)) {
             throw new RuntimeException("Semantic Error: Exponent must be an integer, not " + exp.value);
         }
 
-        // 4. وسم العقدة بالأبعاد الجديدة
-        // (استخدام ميثود scale التي تضرب أبعاد الأساس في قيمة الأس)
         node.dimension = node.base.dimension.scale(exp.value);
 
         return null;
@@ -356,7 +348,6 @@ public class SemanticAnalyzer implements ASTVisitor<Void> {
     @Override
     public Void visitBaseUnitNode(BaseUnitNode node) {
         if (UnitRegistry.UNIT_TABLE.containsKey(node.symbol)) {
-
             node.dimension = UnitRegistry.UNIT_TABLE.get(node.symbol).getDimension();
             node.toBaseFactor = UnitRegistry.UNIT_TABLE.get(node.symbol).getToBaseFactor();
         } else {

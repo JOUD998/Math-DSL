@@ -88,12 +88,10 @@ public class Dimension {
 
         if (numerator.length() == 0 && denominator.length() == 0) return "";
 
-        // إذا ما في بسط بس في مقام (مثلاً s^-1)
         if (numerator.length() == 0 && denominator.length() > 0) {
             return "1/" + denominator.toString();
         }
 
-        // إذا في بسط ومقام
         if (denominator.length() > 0) {
             return numerator.toString() + "/" + denominator.toString();
         }

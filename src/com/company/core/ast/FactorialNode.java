@@ -9,7 +9,7 @@ public class FactorialNode extends ASTNode {
 
     @Override
     public String toJson() {
-        return "{ \"type\": \"Factorial\", \"child\": " + child.toJson() +  " } Ich muss heir was andern ";
+        return "{ \"type\": \"Factorial\", \"child\": " + child.toJson() +  " } Ich muss heir was aendern ";
     }
 
     @Override

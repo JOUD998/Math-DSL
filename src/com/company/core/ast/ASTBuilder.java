@@ -61,7 +61,6 @@ public class ASTBuilder extends MathDSLBaseVisitor<ASTNode> {
 
     @Override
     public ASTNode visitLetDecl(MathDSLParser.LetDeclContext ctx) {
-//            : LET vname=ID (COLON unit)? EQUAL expr
         UnitNode unit = null;
         if (ctx.unit() != null){
             unit = (UnitNode) visit(ctx.unit());
@@ -98,10 +97,7 @@ public class ASTBuilder extends MathDSLBaseVisitor<ASTNode> {
     //to delete
     @Override
     public ASTNode visitArgList(MathDSLParser.ArgListContext ctx) {
-//        List<ASTNode> expressions = new ArrayList<>();
-//        for (MathDSLParser.ExprContext exps: ctx.expr()){
-//            expressions.add(visit(exps));
-//        }
+
          return super.visitArgList(ctx);
     }
 
@@ -176,7 +172,6 @@ public class ASTBuilder extends MathDSLBaseVisitor<ASTNode> {
             }
         }
 
-        // 2. حالة الرقم
         if (ctx.NUMBER() != null) {
             double value = Double.parseDouble(ctx.NUMBER().getText());
             UnitNode unit = null;

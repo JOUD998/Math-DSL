@@ -89,7 +89,7 @@ ELSE : 'else';
 
 // Tokens
 NUMBER : [0-9]+ ('.' [0-9]+)?;
-ID     : [a-zA-Z]+ ;
+ID     : [a-zA-Z]+;
 
 // Punctuation
 LPAREN : '(';

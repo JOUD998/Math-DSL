@@ -21,7 +21,6 @@ public class TermRewriter implements ASTVisitor<ASTNode> {
     }
 
 
-    //TODO node.accept(this) statements delete some and add some to rewrite the term
 
     @Override
     public ASTNode visitProgramNode(ProgramNode node) {
@@ -156,7 +155,7 @@ public class TermRewriter implements ASTVisitor<ASTNode> {
             // أي شيء أس 0 هو 1 (وبدون وحدة Dimensionless)
             if (exp.value == 0) {
                 NumberLiteralNode result = new NumberLiteralNode(1, null);
-                result.dimension = new Dimension(0, 0, 0); // هامة جداً!
+                result.dimension = new Dimension(0, 0, 0); //
                 return result;
             }
             // أي شيء أس 1 يبقى كما هو
@@ -170,14 +169,14 @@ public class TermRewriter implements ASTVisitor<ASTNode> {
             // حساب القيمة الحسابية
             double newValue = Math.pow(b.value, e.value);
 
-            // حساب الأبعاد الجديدة: ضرب أبعاد الأساس في قيمة الأس
+
             Dimension newDim = b.dimension.scale(e.value);
 
             NumberLiteralNode result = new NumberLiteralNode(newValue, null);
             result.dimension = newDim;
 
             result.unitNode = new UnitNode(new BaseUnitNode("Unit: " + newDim.toReadableString()));
-            System.out.println(Color.cyan("Rewriting (Constant Folding & Dimension Scaling) : " + result.value + " " + result.dimension.toBaseUnitString()));
+            System.out.println(Color.cyan("Rewriting : " + result.value + " " + result.dimension.toBaseUnitString()));
             return result;
         }
 
@@ -239,6 +238,12 @@ public class TermRewriter implements ASTVisitor<ASTNode> {
 
     @Override
     public ASTNode visitFuncCallNode(FuncCallNode node) {
+        for (int i = 0; i < node.args.size(); i++) {
+            ASTNode rewritten = node.args.get(i).accept(this);
+            if (rewritten != null) {
+                node.args.set(i, rewritten);
+            }
+        }
         return node;
     }
 
@@ -257,12 +262,14 @@ public class TermRewriter implements ASTVisitor<ASTNode> {
         Symbol symbol = currentScope.resolve(node.name);
 
         if (symbol instanceof VariableSymbol vs) {
-            if (vs.getExpression() instanceof NumberLiteralNode num) {
+            // ما نطبق constant folding على المتغيرات اللي قيمتها متغيرة (مثل parameters)
+            if (vs.getExpression() instanceof NumberLiteralNode num && vs.getValue() == 0) {
                 NumberLiteralNode copy = new NumberLiteralNode(num.value, num.unitNode);
-                copy.dimension = vs.getDimension(); // تأكد إن الـ dimension هون مو null أو NONE
+                copy.dimension = vs.getDimension();
                 return copy;
             }
         }
+
         return node;
     }
 
@@ -319,7 +326,6 @@ public class TermRewriter implements ASTVisitor<ASTNode> {
         return zero;
     }
     private NumberLiteralNode createResultNode(double val, Dimension dim) {
-        // جلب الرمز المناسب للأبعاد (مثلاً m إذا كانت الأبعاد طول)
         String symbol = UnitRegistry.getBaseUnitSymbol(dim);
 
         UnitNode unitNode = null;
@@ -328,9 +334,9 @@ public class TermRewriter implements ASTVisitor<ASTNode> {
         }
 
         NumberLiteralNode res = new NumberLiteralNode(val, unitNode);
-        res.dimension = dim; // هاد السطر هو اللي بيخلي الـ Interpreter يشوف الوحدة
+        res.dimension = dim;
 
-        System.out.println(Color.cyan("Rewriting (Constant Folding): " + val + " " + dim.toBaseUnitString()));
+        System.out.println(Color.cyan("Rewriting : " + val + " " + dim.toBaseUnitString()));
         return res;
     }
 }
