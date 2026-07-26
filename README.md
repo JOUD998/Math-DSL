@@ -151,7 +151,7 @@ If no predefined unit exists in the registry, the language automatically generat
 - `kg·m/s²`
 - `m²/s`
 
-![Dimension-Based Unit Inference](docs/images/unit-inference.png)
+![Dimension-Based Unit Inference](docs/images/Unit-transformations-MathDSL.jpg)
 
 ---
 
